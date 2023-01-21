@@ -668,14 +668,18 @@ function get_app_name_from_shim($shim) {
 function Get-ShimTarget($ShimPath) {
     if ($ShimPath) {
         $shimTarget = if ($ShimPath.EndsWith('.shim')) {
-            (Get-Content -Path $ShimPath | Select-Object -First 1).Replace('path = ', '').Replace('"', '')
+            ((Select-String -Path $ShimPath -Pattern '^path\s*=\s*[''"]?(.*?)[''"]?\s*$' -AllMatches).Matches.Groups | Select-Object -Last 1).Value
         } else {
             ((Select-String -Path $ShimPath -Pattern '^(?:@rem|#)\s*(.*)$').Matches.Groups | Select-Object -Index 1).Value
         }
         if (!$shimTarget) {
             $shimTarget = ((Select-String -Path $ShimPath -Pattern '[''"]([^@&]*?)[''"]' -AllMatches).Matches.Groups | Select-Object -Last 1).Value
         }
-        $shimTarget | Convert-Path
+        $ShimDir = ([System.IO.Path]::GetDirectoryName($ShimPath))
+        PushD $ShimDir
+        $shimTarget = $shimTarget | Convert-Path
+        PopD
+        return $shimTarget
     }
 }
 
